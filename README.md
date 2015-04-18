@@ -29,3 +29,7 @@
 
 # Reactive Android with type-safety
 
+Aiming to provide two-way data binding on Android, similar to what Angularjs or react.js does. We heavily uses Scaloid and scala.rx.
+This is in the proof-of-concept stage. Everything can be changed.
+
+Go to `sample` directory and just do `sbt run`.

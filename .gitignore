@@ -1,18 +1,7 @@
-# SBT
-target
-project/target
-project/project
-lib_managed
-
-# IntelliJ IDEA
-.idea
-.idea_modules
-*.iml
-
-# VIM
-*.sw?
-
-# The others
-[#]*[#]
-*~
-.*.marks
+bin/
+gen/
+target/
+.idea*/
+build.xml
+local.properties
+proguard-*.txt
