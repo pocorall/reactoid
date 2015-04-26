@@ -32,8 +32,8 @@
 Reactoid provides two-way data binding on Android, similar to what AngularJS or React does. For example, given this very short code below, text you typed in the `EditText` is synchronized with the title of the `Button` in real-time.
 
 ```scala
-val tvar = EditText("Edit me").textVar
-Button().observe("[[" + tvar() + "]]")
+val txt = EditText("Edit me").textVar
+Button("[[" + txt() + "]]")
 ```
 
 Becuase Reactoid is based on [Scaloid](https://github.com/pocorall/scaloid) and [Scala.Rx](https://github.com/lihaoyi/scala.rx), you can take advantage of sophisticated asynchronous task management, better runtime performance, and type-safety. These are not easily achievable from javascript-based frameworks.

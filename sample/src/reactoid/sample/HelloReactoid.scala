@@ -32,8 +32,8 @@ class HelloReactoid extends SActivity {
     onCreate {
       contentView = new SVerticalLayout {
         val tv = TextView()
-        val tvar = EditText("Edit me").textVar(tv).textVar
-        Button().observe("[[" + tvar() + "]]")
+        val txt = EditText("Edit me").textVar(tv).textVar
+        Button("[[" + txt() + "]]")
       } padding 20.dip
     }
 
@@ -41,9 +41,9 @@ class HelloReactoid extends SActivity {
     onCreate {
       contentView = new SVerticalLayout {
         val tv = TextView()
-        val tvar = EditText().hint("ID").textVar
+        val txt = EditText().hint("ID").textVar
         tv.observe {
-          isValidID(tvar()).map {
+          isValidID(txt()).map {
             valid => if (valid) "Valid ID" else "ID already exists"
           }.recover { case cause => cause.getMessage }
         }

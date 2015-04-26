@@ -2,6 +2,7 @@ package org.reactoid
 
 import java.util.concurrent._
 import android.content.Context
+import android.graphics.drawable.Drawable
 import android.view.View
 import android.view.View.OnClickListener
 import org.scaloid.common._
@@ -15,6 +16,7 @@ trait Observable[T] {
 }
 
 trait widget {
+
   class Button()(implicit context: android.content.Context, parentVGroup: TraitViewGroup[_] = null)
     extends android.widget.Button(context) with TraitButton[Button] with Observable[CharSequence] {
 
@@ -28,20 +30,27 @@ trait widget {
       }
     }
 
-    def this(text: CharSequence)(implicit context: Context) = {
-      this()
-      this.text = text
+    private var bdobsEv:AnyRef = null // prevents weakreference looses its link
+    def observeBackgroundDrawable(bdrawable: Rx[Drawable]): Unit = {
+      bdobsEv = Obs(bdrawable) {
+        runOnUiThread(backgroundDrawable = bdrawable())
+      }
     }
 
-    def this(text: CharSequence, onClickListener: View => Unit)(implicit context: Context) = {
+    def this(textVar: Rx[CharSequence])(implicit context: Context) = {
       this()
-      this.text = text
+      observe(textVar)
+    }
+
+    def this(textVar: Rx[CharSequence], onClickListener: View => Unit)(implicit context: Context) = {
+      this()
+      observe(textVar)
       this.setOnClickListener(onClickListener)
     }
 
-    def this(text: CharSequence, onClickListener: OnClickListener)(implicit context: Context) = {
+    def this(textVar: Rx[CharSequence], onClickListener: OnClickListener)(implicit context: Context) = {
       this()
-      this.text = text
+      observe(textVar)
       this.setOnClickListener(onClickListener)
     }
 
@@ -54,20 +63,18 @@ trait widget {
       v
     }
 
-    def apply[LP <: ViewGroupLayoutParams[_, Button]](txt: CharSequence)(implicit context: Context, defaultLayoutParam: (Button) => LP): Button = {
-      val v = new Button
-      v text txt
+    def apply[LP <: ViewGroupLayoutParams[_, Button]](txt: Rx[CharSequence])(implicit context: Context, defaultLayoutParam: (Button) => LP): Button = {
+      val v = new Button(txt)
       v.<<.parent.+=(v)
       v
     }
 
-    def apply[LP <: ViewGroupLayoutParams[_, Button]](text: CharSequence, onClickListener: (View) => Unit)(implicit context: Context, defaultLayoutParam: (Button) => LP): Button = {
+    def apply[LP <: ViewGroupLayoutParams[_, Button]](text: Rx[CharSequence], onClickListener: (View) => Unit)(implicit context: Context, defaultLayoutParam: (Button) => LP): Button = {
       apply(text, func2ViewOnClickListener(onClickListener))
     }
 
-    def apply[LP <: ViewGroupLayoutParams[_, Button]](text: CharSequence, onClickListener: OnClickListener)(implicit context: Context, defaultLayoutParam: (Button) => LP): Button = {
-      val v = new Button
-      v.text = text
+    def apply[LP <: ViewGroupLayoutParams[_, Button]](text: Rx[CharSequence], onClickListener: OnClickListener)(implicit context: Context, defaultLayoutParam: (Button) => LP): Button = {
+      val v = new Button(text)
       v.setOnClickListener(onClickListener)
       v.<<.parent.+=(v)
       v
