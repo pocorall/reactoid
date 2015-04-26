@@ -29,17 +29,24 @@
 
 # Reactive Android with type-safety
 
-Reactoid provides two-way data binding on Android, similar to what AngularJS or React does. We heavily uses Scaloid and scala.rx.
-This is in the proof-of-concept stage. Everything can be changed.
+Reactoid provides two-way data binding on Android, similar to what AngularJS or React does. For example, given this very short code below, text you typed in the `EditText` is synchronized with the title of the `Button` in real-time.
 
+```scala
+val tvar = EditText("Edit me").textVar
+Button().observe("[[" + tvar() + "]]")
+```
 
-## Demo application
+Becuase Reactoid is based on [Scaloid](https://github.com/pocorall/scaloid) and [Scala.Rx](https://github.com/lihaoyi/scala.rx), you can take advantage of sophisticated asynchronous task management, better runtime performance, and type-safety. These are not easily achievable from javascript-based frameworks.
 
-Go to `sample` directory and just do `sbt run`
+Reactoid is currently in the proof-of-concept stage. Everything can be changed.
+
+## Demos
+
+Go to the `sample` directory and just do `sbt run`
 
 ### Prerequisites
 
  * Sbt 0.13.7 or above
  * Android build tools 22.0.0 or above
  * Android API Level 22
-   - Level 22 is required for building, while this app retains runtime compatibility from API Level 15. Please refer to minSdkVersion property in AndroidManifest.xml
+   - Level 22 is required for building, while this app retains runtime compatibility from API Level 15. Please refer to `minSdkVersion` property in `AndroidManifest.xml`.

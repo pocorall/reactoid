@@ -19,7 +19,7 @@ object AsyncIOSimulator {
   def isValidID(str: CharSequence): Future[Boolean] = whenDirty {
     i += 1
     val v = i % 3
-    Thread.sleep(2000)
+    Thread.sleep(2000) // simulates latency
     if (v == 0) throw new Exception("Connection Timeout")
     v == 1
   }
@@ -31,10 +31,9 @@ class HelloReactoid extends SActivity {
   def demo1() =
     onCreate {
       contentView = new SVerticalLayout {
-        val bt = Button()
         val tv = TextView()
-        val tvar = EditText("Edit me").fill.textVar(tv).textVar
-        bt.observe(Rx("[[" + tvar() + "]]"))
+        val tvar = EditText("Edit me").textVar(tv).textVar
+        Button().observe("[[" + tvar() + "]]")
       } padding 20.dip
     }
 
@@ -51,5 +50,5 @@ class HelloReactoid extends SActivity {
       } padding 20.dip
     }
 
-  demo2()
+  demo1()
 }

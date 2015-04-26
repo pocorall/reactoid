@@ -256,8 +256,9 @@ trait util {
 
   import scala.language.implicitConversions
 
-  implicit def future2Rx[CharSequence](future: => Future[CharSequence]): Rx[CharSequence] = Rx(future).async("".asInstanceOf[CharSequence])
+  implicit def futureCharSeq2Rx[CharSequence](future: => Future[CharSequence]): Rx[CharSequence] = Rx(future).async("".asInstanceOf[CharSequence])
 
+  implicit def charSeq2Rx[CharSequence](seq: => CharSequence): Rx[CharSequence] = Rx(seq)
 }
 
 object util extends util
