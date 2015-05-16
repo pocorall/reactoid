@@ -1,6 +1,7 @@
 package org.reactoid
 
 import java.util.concurrent._
+
 import android.content.Context
 import android.graphics.drawable.Drawable
 import android.view.View
@@ -9,7 +10,7 @@ import org.scaloid.common._
 import rx._
 import rx.ops._
 
-import scala.concurrent.{Future, ExecutionContext}
+import scala.concurrent.{ExecutionContext, Future}
 
 trait Observable[T] {
   def observe(variable: Rx[T]): Unit
@@ -115,51 +116,59 @@ trait widget {
 
   }
 
-  object TextView {
-    def apply[LP <: ViewGroupLayoutParams[_, TextView]]()(implicit context: android.content.Context, defaultLayoutParam: TextView => LP): TextView = {
-      val v = new TextView
+  trait ObjTextView[V <: android.widget.TextView] {
+    protected def create()(implicit context: android.content.Context): V
+
+    def apply[LP <: ViewGroupLayoutParams[_, V]]()(implicit context: android.content.Context, defaultLayoutParam: V => LP): V = {
+      val v = create()
       v.<<.parent.+=(v)
       v
     }
 
-    def apply[LP <: ViewGroupLayoutParams[_, TextView]](txt: CharSequence)(implicit context: Context, defaultLayoutParam: (TextView) => LP): TextView = {
-      val v = new TextView
+    def apply[LP <: ViewGroupLayoutParams[_, V]](txt: CharSequence)(implicit context: Context, defaultLayoutParam: V => LP): V = {
+      val v = apply()
       v text txt
-      v.<<.parent.+=(v)
       v
     }
 
-    def apply[LP <: ViewGroupLayoutParams[_, TextView]](text: CharSequence, onClickListener: (View) => Unit)(implicit context: Context, defaultLayoutParam: (TextView) => LP): TextView = {
+    def apply[LP <: ViewGroupLayoutParams[_, V]](text: CharSequence, onClickListener: (View) => Unit)(implicit context: Context, defaultLayoutParam: V => LP): V = {
       apply(text, func2ViewOnClickListener(onClickListener))
     }
 
-    def apply[LP <: ViewGroupLayoutParams[_, TextView]](text: CharSequence, onClickListener: OnClickListener)(implicit context: Context, defaultLayoutParam: (TextView) => LP): TextView = {
-      val v = new TextView
+    def apply[LP <: ViewGroupLayoutParams[_, V]](text: CharSequence, onClickListener: OnClickListener)(implicit context: Context, defaultLayoutParam: V => LP): V = {
+      val v = create()
       v.text = text
       v.setOnClickListener(onClickListener)
       v.<<.parent.+=(v)
       v
     }
-
   }
 
-  class EditText(implicit context:Context, parentVGroup: TraitViewGroup[_] = null) extends android.widget.EditText(context) with TraitEditText[EditText] {
+  object TextView extends ObjTextView[TextView] {
+    protected def create()(implicit context: android.content.Context) = new TextView
+  }
 
-    def basis = this
-    override val parentViewGroup = parentVGroup
+  trait TrEditText[V <: android.widget.EditText] extends TraitEditText[V] {
+    implicit protected val contxt: Context
 
     private val _textVar = Var[CharSequence](text.toString)
 
     def textVar = _textVar
 
-    def textVar(obs: Observable[CharSequence]): EditText = {
+    def textVar(obs: Observable[CharSequence]): V = {
       obs.observe(_textVar)
-      this
+      basis
     }
 
     onTextChanged {
       _textVar() = text.toString
     }
+  }
+
+  class EditText(implicit protected val contxt: Context, parentVGroup: TraitViewGroup[_] = null) extends android.widget.EditText(contxt) with TrEditText[EditText] {
+    def basis = this
+
+    override val parentViewGroup = parentVGroup
 
     def this(text: CharSequence)(implicit context: Context) = {
       this()
@@ -179,20 +188,8 @@ trait widget {
     }
   }
 
-  object EditText {
-    def apply[LP <: ViewGroupLayoutParams[_, EditText]]()(implicit context: android.content.Context, defaultLayoutParam: EditText => LP): EditText = {
-      val v = new EditText
-      v.<<.parent.+=(v)
-      v
-    }
-
-
-    def apply[LP <: ViewGroupLayoutParams[_, EditText]](txt: CharSequence)(implicit context: Context, defaultLayoutParam: (EditText) => LP): EditText = {
-      val v = new EditText
-      v text txt
-      v.<<.parent.+=(v)
-      v
-    }
+  object EditText extends ObjTextView[EditText] {
+    protected def create()(implicit context: android.content.Context) = new EditText
   }
 
 }
@@ -200,6 +197,7 @@ trait widget {
 object widget extends widget
 
 trait util {
+
   import java.{util => ut}
 
   /**
@@ -260,7 +258,6 @@ trait util {
   def whenDirty[T](f: => T): Future[T] = Future(f)(dirtyCheckExecutionContext)
 
   import scala.concurrent.ExecutionContext.Implicits.global
-
   import scala.language.implicitConversions
 
   implicit def futureCharSeq2Rx[CharSequence](future: => Future[CharSequence]): Rx[CharSequence] = Rx(future).async("".asInstanceOf[CharSequence])
