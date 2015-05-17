@@ -86,18 +86,21 @@ trait widget {
   }
 
 
-  class TextView()(implicit context: android.content.Context, parentVGroup: TraitViewGroup[_] = null)
-    extends android.widget.TextView(context) with TraitTextView[TextView] with Observable[CharSequence] {
-
-    def basis = this
-    override val parentViewGroup = parentVGroup
+  trait TrTextView[T <: android.widget.TextView] extends TraitTextView[T] with Observable[CharSequence] {
 
     private var obsEv:AnyRef = null  // prevents weakreference looses its link
     def observe(textVar: Rx[CharSequence]):Unit = {
       obsEv = Obs(textVar) {
-        runOnUiThread(text = textVar())
+        runOnUiThread(basis.setText(textVar()))
       }
     }
+  }
+
+  class TextView()(implicit context: android.content.Context, parentVGroup: TraitViewGroup[_] = null)
+    extends android.widget.TextView(context) with TraitTextView[TextView] with TrTextView[TextView] {
+
+    def basis = this
+    override val parentViewGroup = parentVGroup
 
     def this(text: CharSequence)(implicit context: Context) = {
       this()
@@ -118,12 +121,19 @@ trait widget {
 
   }
 
-  trait ObjTextView[V <: android.widget.TextView] {
+
+  trait ObjTextView[V <: android.widget.TextView with TrTextView[V]] {
     protected def create()(implicit context: android.content.Context): V
 
     def apply[LP <: ViewGroupLayoutParams[_, V]]()(implicit context: android.content.Context, defaultLayoutParam: V => LP): V = {
       val v = create()
       v.<<.parent.+=(v)
+      v
+    }
+    def apply[LP <: ViewGroupLayoutParams[_, V]](anyVar: Rx[Any])(implicit context: Context, defaultLayoutParam: V => LP): V = {
+      val v = apply()
+      //v text anyVar().toString
+      v.observe(Rx(anyVar().toString))
       v
     }
 
@@ -150,7 +160,7 @@ trait widget {
     protected def create()(implicit context: android.content.Context) = new TextView
   }
 
-  trait TrEditText[V <: android.widget.EditText] extends TraitEditText[V] {
+  trait TrEditText[V <: android.widget.EditText] extends TraitEditText[V] with TrTextView[V] {
     implicit protected val contxt: Context
 
     private val _textVar = Var[CharSequence](text.toString)
@@ -213,7 +223,7 @@ trait support {
   implicit def futureCharSeq2Rx[CharSequence](future: => Future[CharSequence])(implicit executor: ExecutionContext): Rx[CharSequence] =
     Rx(future).async("".asInstanceOf[CharSequence])
 
-  implicit def charSeq2Rx[CharSequence](seq: => CharSequence): Rx[CharSequence] = Rx(seq)
+  implicit def any2Rx[T](seq: => T): Rx[T] = Rx(seq)
 }
 
 object support extends support

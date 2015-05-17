@@ -6,6 +6,7 @@ import rx.Rx
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
+import scala.language.implicitConversions
 
 
 /**
@@ -50,5 +51,29 @@ class HelloReactoid extends SActivity {
       } padding 20.dip
     }
 
-  demo1()
+  case class Item(var title:Rx[String], var unitPrice:Rx[Double], var quantity:Rx[Int]) {
+    def price = Rx(quantity() * unitPrice())
+  }
+
+  var cart = Rx(List(
+    Item("Tomato", 0.5, 2),
+    Item("Apple", 0.99, 3),
+    Item("Pear", 1.05, 1),
+    Item("Strawberry", 3.0, 1)
+  ))
+
+  def demo3() =
+    onCreate {
+      contentView = new SVerticalLayout {
+        cart().foreach {
+          i =>
+            TextView(i.title())
+            EditText(i.unitPrice().toString)
+            EditText(i.quantity().toString)
+            TextView((i.unitPrice() * i.quantity()).toString)
+        }
+      } padding 20.dip
+    }
+
+  demo3()
 }
