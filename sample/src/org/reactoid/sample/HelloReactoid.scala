@@ -35,9 +35,8 @@ class HelloReactoid extends SActivity {
   def demo1() =
     onCreate {
       contentView = new SVerticalLayout {
-        val tv = TextView()
-        val txt = EditText("Edit me").textVar(tv).textVar
-        Button("[[" + txt() + "]]")
+        val txt = EditText("Hello").textVar
+        Button(txt() + ", world!")
       } padding 20.dip
     }
 
@@ -51,5 +50,5 @@ class HelloReactoid extends SActivity {
       } padding 20.dip
     }
 
-  demo2()
+  demo1()
 }
