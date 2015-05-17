@@ -1,9 +1,8 @@
-package reactoid.sample
+package org.reactoid.sample
 
 import org.reactoid.all._
 import org.scaloid.common._
-import rx.core.Rx
-import rx.ops._
+import rx.Rx
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
@@ -23,6 +22,11 @@ object AsyncIOSimulator {
     if (v == 0) throw new Exception("Connection Timeout")
     v == 1
   }
+
+  def validityMessage(str: CharSequence): Future[String] =
+    isValidID(str).map {
+      valid => if (valid) "Valid ID" else "ID already exists"
+    }.recover { case cause => cause.getMessage }
 }
 
 import AsyncIOSimulator._
@@ -42,13 +46,10 @@ class HelloReactoid extends SActivity {
       contentView = new SVerticalLayout {
         val tv = TextView()
         val txt = EditText().hint("ID").textVar
-        tv.observe {
-          isValidID(txt()).map {
-            valid => if (valid) "Valid ID" else "ID already exists"
-          }.recover { case cause => cause.getMessage }
-        }
+        val msgRx = validityMessage(txt()):Rx[String]
+        tv.observe(msgRx)
       } padding 20.dip
     }
 
-  demo1()
+  demo2()
 }
