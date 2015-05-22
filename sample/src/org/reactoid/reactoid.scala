@@ -29,7 +29,9 @@ trait widget {
     private var obsEv:AnyRef = null   // prevents weakreference looses its link
     def observe(textVar: Rx[CharSequence]):Unit = {
       obsEv = Obs(textVar) {
-        runOnUiThread(text = textVar())
+        val newText = textVar()
+        if(text != newText) // important to prevent infinite update
+        runOnUiThread(text = newText)
       }
     }
 
@@ -130,9 +132,9 @@ trait widget {
       v.<<.parent.+=(v)
       v
     }
+
     def apply[LP <: ViewGroupLayoutParams[_, V]](anyVar: Rx[Any])(implicit context: Context, defaultLayoutParam: V => LP): V = {
       val v = apply()
-      //v text anyVar().toString
       v.observe(Rx(anyVar().toString))
       v
     }
@@ -177,7 +179,7 @@ trait widget {
     }
   }
 
-  class EditText(implicit protected val contxt: Context, parentVGroup: TraitViewGroup[_] = null) extends android.widget.EditText(contxt) with TrEditText[EditText] {
+  class EditText(rxText:Rx[_] = Rx(""))(implicit protected val contxt: Context, parentVGroup: TraitViewGroup[_] = null) extends android.widget.EditText(contxt) with TrEditText[EditText] {
     def basis = this
 
     override val parentViewGroup = parentVGroup
@@ -200,8 +202,21 @@ trait widget {
     }
   }
 
-  object EditText extends ObjTextView[EditText] {
+  trait ObjEditText[V <: EditText with TrEditText[V]] extends ObjTextView[V] {
+    protected def create(rxText: Rx[_])(implicit context: android.content.Context): V
+
+    override def apply[LP <: ViewGroupLayoutParams[_, V]](anyVar: Rx[Any])(implicit context: Context, defaultLayoutParam: V => LP): V = {
+      val v = create(anyVar)
+      v.observe(Rx(anyVar().toString))
+      v.<<.parent.+=(v)
+      v
+    }
+  }
+
+  object EditText extends ObjEditText[EditText] {
     protected def create()(implicit context: android.content.Context) = new EditText
+
+    protected def create(rxText: Rx[_])(implicit context: android.content.Context) = new EditText(rxText)
   }
 
 }

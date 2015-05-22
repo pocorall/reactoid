@@ -51,8 +51,8 @@ class HelloReactoid extends SActivity {
       } padding 20.dip
     }
 
-  case class Item(var title:Rx[String], var unitPrice:Rx[Double], var quantity:Rx[Int]) {
-    def price = Rx(quantity() * unitPrice())
+  case class Item(title:Rx[String], unitPrice:Rx[Double], quantity:Rx[Int]) {
+    val price = Rx(quantity() * unitPrice())
   }
 
   var cart = Rx(List(
@@ -68,7 +68,7 @@ class HelloReactoid extends SActivity {
         cart().foreach {
           i =>
             TextView(i.title())
-            EditText(i.unitPrice().toString)
+            EditText(i.unitPrice)
             EditText(i.quantity().toString)
             TextView((i.unitPrice() * i.quantity()).toString)
         }
