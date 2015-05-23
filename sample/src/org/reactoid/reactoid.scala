@@ -21,15 +21,15 @@ trait Observable[T] {
 trait widget {
 
   class Button()(implicit context: android.content.Context, parentVGroup: TraitViewGroup[_] = null)
-    extends android.widget.Button(context) with TraitButton[Button] with Observable[CharSequence] {
+    extends android.widget.Button(context) with TraitButton[Button] with Observable[Any] {
 
     def basis = this
     override val parentViewGroup = parentVGroup
 
     private var obsEv:AnyRef = null   // prevents weakreference looses its link
-    def observe(textVar: Rx[CharSequence]):Unit = {
+    def observe(textVar: Rx[Any]):Unit = {
       obsEv = Obs(textVar) {
-        val newText = textVar()
+        val newText = textVar().toString
         if(text != newText) // important to prevent infinite update
         runOnUiThread(text = newText)
       }
@@ -42,18 +42,18 @@ trait widget {
       }
     }
 
-    def this(textVar: Rx[CharSequence])(implicit context: Context) = {
+    def this(textVar: Rx[Any])(implicit context: Context) = {
       this()
       observe(textVar)
     }
 
-    def this(textVar: Rx[CharSequence], onClickListener: View => Unit)(implicit context: Context) = {
+    def this(textVar: Rx[Any], onClickListener: View => Unit)(implicit context: Context) = {
       this()
       observe(textVar)
       this.setOnClickListener(onClickListener)
     }
 
-    def this(textVar: Rx[CharSequence], onClickListener: OnClickListener)(implicit context: Context) = {
+    def this(textVar: Rx[Any], onClickListener: OnClickListener)(implicit context: Context) = {
       this()
       observe(textVar)
       this.setOnClickListener(onClickListener)
@@ -88,12 +88,12 @@ trait widget {
   }
 
 
-  trait TrTextView[T <: android.widget.TextView] extends TraitTextView[T] with Observable[CharSequence] {
+  trait TrTextView[T <: android.widget.TextView] extends TraitTextView[T] with Observable[Any] {
 
     private var obsEv:AnyRef = null  // prevents weakreference looses its link
-    def observe(textVar: Rx[CharSequence]):Unit = {
+    def observe(textVar: Rx[Any]): Unit = {
       obsEv = Obs(textVar) {
-        runOnUiThread(basis.setText(textVar()))
+        runOnUiThread(basis.setText(textVar().toString))
       }
     }
   }
@@ -135,7 +135,7 @@ trait widget {
 
     def apply[LP <: ViewGroupLayoutParams[_, V]](anyVar: Rx[Any])(implicit context: Context, defaultLayoutParam: V => LP): V = {
       val v = apply()
-      v.observe(Rx(anyVar().toString))
+      v.observe(anyVar)
       v
     }
 
@@ -179,7 +179,7 @@ trait widget {
     }
   }
 
-  class EditText(rxText:Rx[_] = Rx(""))(implicit protected val contxt: Context, parentVGroup: TraitViewGroup[_] = null) extends android.widget.EditText(contxt) with TrEditText[EditText] {
+  class EditText(private var _boundedVar:Var[_] = Var(""))(implicit protected val contxt: Context, parentVGroup: TraitViewGroup[_] = null) extends android.widget.EditText(contxt) with TrEditText[EditText] {
     def basis = this
 
     override val parentViewGroup = parentVGroup
@@ -200,14 +200,19 @@ trait widget {
       this.text = text
       this.setOnClickListener(onClickListener)
     }
+
+    def boundedVar = _boundedVar
+    def boundedVar_=(): Unit = {
+
+    }
   }
 
-  trait ObjEditText[V <: EditText with TrEditText[V]] extends ObjTextView[V] {
-    protected def create(rxText: Rx[_])(implicit context: android.content.Context): V
+  trait ObjEditText[V <: android.widget.EditText with TrEditText[V]] extends ObjTextView[V] {
+    protected def create[T](rxText: Var[T])(implicit context: android.content.Context): V
 
-    override def apply[LP <: ViewGroupLayoutParams[_, V]](anyVar: Rx[Any])(implicit context: Context, defaultLayoutParam: V => LP): V = {
+    def apply[T, LP <: ViewGroupLayoutParams[_, V]](anyVar: Var[T])(implicit context: Context, defaultLayoutParam: V => LP): V = {
       val v = create(anyVar)
-      v.observe(Rx(anyVar().toString))
+      v.observe(anyVar)
       v.<<.parent.+=(v)
       v
     }
@@ -216,7 +221,7 @@ trait widget {
   object EditText extends ObjEditText[EditText] {
     protected def create()(implicit context: android.content.Context) = new EditText
 
-    protected def create(rxText: Rx[_])(implicit context: android.content.Context) = new EditText(rxText)
+    protected def create[T](rxText: Var[T])(implicit context: android.content.Context) = new EditText(rxText)
   }
 
 }
@@ -238,7 +243,7 @@ trait support {
   implicit def futureCharSeq2Rx[CharSequence](future: => Future[CharSequence])(implicit executor: ExecutionContext): Rx[CharSequence] =
     Rx(future).async("".asInstanceOf[CharSequence])
 
-  implicit def any2Rx[T](seq: => T): Rx[T] = Rx(seq)
+  implicit def any2Var[T](seq: => T): Var[T] = Var(seq)
 }
 
 object support extends support
