@@ -11,7 +11,7 @@
  *
  *
  *
- * Copyright 2015 Sung-Ho Lee and Reactoid team
+ * Copyright 2015 Sung-Ho Lee and Reactoid contributors
  *
  * Sung-Ho Lee licenses this file to you under the Apache License,
  * version 2.0 (the "License"); you may not use this file except in compliance
@@ -26,6 +26,8 @@
  * under the License.
  */
 -->
+
+<p align="center"><img src="http://o-n2.com/reactoid_logo.png"></p>
 
 # Reactive Android with type-safety
 
