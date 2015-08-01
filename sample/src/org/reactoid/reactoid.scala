@@ -243,7 +243,7 @@ trait support {
   implicit def futureCharSeq2Rx[CharSequence](future: => Future[CharSequence])(implicit executor: ExecutionContext): Rx[CharSequence] =
     Rx(future).async("".asInstanceOf[CharSequence])
 
-  implicit def any2Var[T](seq: => T): Var[T] = Var(seq)
+  implicit def any2Var[T](item: => T): Var[T] = Var(item)
 }
 
 object support extends support
