@@ -3,7 +3,8 @@ package org.reactoid.sample
 import android.view.View
 import org.reactoid.all._
 import org.scaloid.common._
-import rx.{Var, Rx}
+import rx.core.Obs
+import rx.{Rx, Var}
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
@@ -38,6 +39,8 @@ object AsyncIOSimulator {
       }
     }
   }
+
+  var o: Obs = null
 }
 
 import org.reactoid.sample.AsyncIOSimulator._
@@ -65,11 +68,11 @@ class HelloReactoid extends SActivity {
         }
 
         trait ViewBuilder[T] {
-          def buildView(obj: T): View
+          def createView: View
         }
 
-        implicit object ItemViewBuilder extends ViewBuilder[Item] {
-          def buildView(i: Item): View = {
+        implicit class ItemViewBuilder(i: Item) extends ViewBuilder[Item] {
+          def createView: View = {
             new SVerticalLayout {
               TextView(i.title)
               EditText(i.unitPrice)
@@ -79,15 +82,53 @@ class HelloReactoid extends SActivity {
           }
         }
 
-        class SeqViewBuilder[T, S <: Seq[T]](implicit ev: ViewBuilder[T]) extends ViewBuilder[S] {
-          def buildView(seq: S): View = {
+        import scala.language.higherKinds
+
+        implicit class SeqViewBuilder[T, S[Q] <: Seq[Q]](seq: S[T])(implicit ev: T => ViewBuilder[T]) extends ViewBuilder[S[T]] {
+          def createView: View = {
             new SVerticalLayout {
-              seq.foreach(i => this += ev.buildView(i))
+              seq.foreach(i => this += i.createView)
             }
           }
         }
 
-        implicit def seqViewBuilder[T, S <: Seq[T]](implicit ev: ViewBuilder[T]): ViewBuilder[S] = new SeqViewBuilder[T, S]
+        implicit class ListViewBuilder[T, S[Q] <: List[Q]](list: S[T])(implicit ev: T => ViewBuilder[T]) extends ViewBuilder[S[T]] {
+          def createView: View = {
+            new SVerticalLayout {
+              list.foreach {
+                i =>
+                  this += i.createView
+                  TextView("Remove")
+              }
+            }
+          }
+        }
+
+        implicit class RxViewBuilder[T, S[Q] <: Rx[Q]](rx: S[T])(implicit ev: T => ViewBuilder[T]) extends ViewBuilder[S[T]] {
+          def createView: View = new SVerticalLayout {
+            this += rx().createView
+            TextView("RXVIEW")
+          }
+        }
+
+        implicit class EditableViewBuilder[T](rxList: Var[List[T]])(implicit ev: T => ViewBuilder[T]) extends ViewBuilder[Var[List[T]]] {
+          def createView: View = {
+            new SVerticalLayout {
+              val l = rxList()
+              l.indices.foreach {
+                i =>
+                  this += l(i).createView
+                  this += new
+                      SLinearLayout {
+                    if (i > 0) SButton("↑", rxList() = l.updated(i, l(i - 1)).updated(i - 1, l(i))).wrap
+                    if (i < l.length - 1) SButton("↓", rxList() = l.updated(i, l(i + 1)).updated(i + 1, l(i))).wrap
+                    SButton("-", rxList() = l.patch(i, Nil, 1)).wrap
+                  }
+              }
+              SButton("+", toast("ADD"))
+            }
+          }
+        }
 
         val cart = Var(List(
           Item("Tomato", 0.5, 1),
@@ -101,11 +142,14 @@ class HelloReactoid extends SActivity {
           u() = u() * 0.95
         }
 
-        def build[T](obj: T)(implicit ev: ViewBuilder[T]) = {
-          lyout += ev.buildView(obj)
+        def build[T](obj: Var[T])(implicit ev: Var[T] => ViewBuilder[Var[T]]) = {
+          o = Obs(obj) {
+            lyout.removeAllViews()
+            lyout += obj.createView
+          }
         }
 
-        build(cart())
+        build(cart)
       }
 
       demo3()

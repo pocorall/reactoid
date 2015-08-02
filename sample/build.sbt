@@ -1,15 +1,15 @@
 import android.Keys._
 
-javacOptions ++= Seq("-source", "1.7", "-target", "1.7")
+javacOptions ++= Seq("-source", "1.7", "-target", "1.7", "-encoding", "utf-8")
 
 android.Plugin.androidBuild
 
 name := "hello-reactoid-sbt"
 
-scalaVersion := "2.11.6"
+scalaVersion := "2.11.7"
 
 proguardCache in Android ++= Seq(
-  ProguardCache("org.scaloid") % "org.scaloid"
+  "org.scaloid"
 )
 
 proguardOptions in Android ++= Seq("-dontobfuscate", "-dontoptimize", "-keepattributes Signature", "-printseeds target/seeds.txt", "-printusage target/usage.txt"
