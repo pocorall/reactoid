@@ -4,6 +4,7 @@ import java.util.concurrent._
 
 import android.content.Context
 import android.graphics.drawable.Drawable
+import android.text.InputType
 import android.view.View
 import android.view.View.OnClickListener
 import org.scaloid.common._
@@ -208,7 +209,7 @@ trait widget {
   }
 
   trait ObjEditText[V <: android.widget.EditText with TrEditText[V]] extends ObjTextView[V] {
-    protected def create[T](rxText: Var[T])(implicit context: android.content.Context): V
+    def create[T](rxText: Var[T])(implicit context: android.content.Context): V
 
     def apply[T, LP <: ViewGroupLayoutParams[_, V]](anyVar: Var[T])(implicit context: Context, defaultLayoutParam: V => LP): V = {
       val v = create(anyVar)
@@ -219,9 +220,17 @@ trait widget {
   }
 
   object EditText extends ObjEditText[EditText] {
-    protected def create()(implicit context: android.content.Context) = new EditText
+    def create()(implicit context: android.content.Context) = new EditText
 
-    protected def create[T](rxText: Var[T])(implicit context: android.content.Context) = new EditText(rxText)
+    def create[T](rxText: Var[T])(implicit context: android.content.Context) =
+      rxText match {
+        case rt: Var[Double @unchecked] => {
+          val te = new EditText(rxText).inputType(InputType.TYPE_CLASS_NUMBER)
+          te.textVar
+          te
+        }
+        case _ => new EditText(rxText)
+      }
   }
 
 }
@@ -249,3 +258,74 @@ trait support {
 object support extends support
 
 object all extends widget with support
+
+import org.reactoid.all._
+/**
+ * Typeclass that can create a view
+ */
+trait ViewBuilder {
+  def newView: View
+}
+
+/**
+ * Typeclass that can append an element
+ */
+trait Appender {
+  def append(): Unit
+}
+
+trait DefaultViewBuilder {
+  implicit class ToStringViewBuilder(obj: Any)(implicit ctx: Context) extends ViewBuilder {
+    def newView: View =
+      new STextView(obj.toString)
+  }
+
+  implicit class SeqViewBuilder[T, S[Q] <: Seq[Q]](seq: S[T])(implicit ev: T => ViewBuilder, ctx: Context) extends ViewBuilder {
+    def newView: View =
+      new SVerticalLayout {
+        seq.foreach(i => this += i.newView)
+      }
+  }
+
+  implicit class ListViewBuilder[T, S[Q] <: List[Q]](list: S[T])(implicit ev: T => ViewBuilder, ctx: Context) extends ViewBuilder {
+    def newView: View =
+      new SVerticalLayout {
+        list.foreach {
+          i =>
+            this += i.newView
+        }
+      }
+  }
+
+  implicit class RxViewBuilder[T, S[Q] <: Rx[Q]](rx: S[T])(implicit ev: T => ViewBuilder, ctx: Context) extends ViewBuilder {
+    def newView: View =
+      new SVerticalLayout {
+        this += rx().newView
+      }
+  }
+
+  implicit class EditableSeqViewBuilder[T](rxSeq: Var[List[T]])(implicit viewEv: T => ViewBuilder, appender: Var[List[T]] => Appender, ctx: Context) extends ViewBuilder {
+    def newView: View =
+      new SVerticalLayout {
+        val seq = rxSeq()
+        seq.indices.foreach {
+          i =>
+            this += seq(i).newView
+            this += new SLinearLayout {
+              if (i > 0) SButton("↑", rxSeq() = seq.updated(i, seq(i - 1)).updated(i - 1, seq(i))).wrap
+              if (i < seq.length - 1) SButton("↓", rxSeq() = seq.updated(i, seq(i + 1)).updated(i + 1, seq(i))).wrap
+              SButton("-", rxSeq() = seq.patch(i, Nil, 1)).wrap
+            }
+        }
+        SButton("+", rxSeq.append())
+      }
+  }
+
+  implicit class EditableStringViewBuilder(varStr: Var[String])(implicit ctx: Context) extends ViewBuilder {
+    def newView: View =
+      EditText.create(varStr)
+  }
+
+}
+
+object DefaultViewBuilder extends DefaultViewBuilder

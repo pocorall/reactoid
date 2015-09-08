@@ -2,6 +2,7 @@ package org.reactoid.sample
 
 import android.content.Context
 import android.view.View
+import org.reactoid.{ViewBuilder, DefaultViewBuilder}
 import org.reactoid.all._
 import org.scaloid.common._
 import rx.core.Obs
@@ -46,145 +47,75 @@ object AsyncIOSimulator {
 }
 
 import org.reactoid.sample.AsyncIOSimulator._
-
-/**
- * Typeclass that can create a view
- */
-trait ViewBuilder {
-  def newView: View
-}
-
-/**
- * Typeclass that can append an element
- */
-trait Appender {
-  def append(): Unit
-}
-
-trait DefaultViewBuilder {
-
-  implicit class SeqViewBuilder[T, S[Q] <: Seq[Q], V <: View](seq: S[T])(implicit ev: T => ViewBuilder, ctx: Context) extends ViewBuilder {
-    def newView: View =
-      new SVerticalLayout {
-        seq.foreach(i => this += i.newView)
-      }
-  }
-
-  implicit class ListViewBuilder[T, S[Q] <: List[Q], V <: View](list: S[T])(implicit ev: T => ViewBuilder, ctx: Context) extends ViewBuilder {
-    def newView: View =
-      new SVerticalLayout {
-        list.foreach {
-          i =>
-            this += i.newView
-        }
-      }
-  }
-
-//  implicit class RxViewBuilder[T, S[Q] <: Rx[Q], V <: View](rx: S[T])(implicit ev: T => ViewBuilder, ctx: Context) extends ViewBuilder {
-//    def newView: View =
-//      new SVerticalLayout {
-//        this += rx().newView
-//        TextView("RXVIEW")
-//      }
-//  }
-
-  implicit class EditableSeqViewBuilder[T](rxSeq: Var[List[T]])(implicit viewEv: T => ViewBuilder, appender: Var[List[T]] => Appender, ctx: Context) extends ViewBuilder {
-    def newView: View =
-      new SVerticalLayout {
-        val seq = rxSeq()
-        seq.indices.foreach {
-          i =>
-            this += seq(i).newView
-            this += new SLinearLayout {
-              if (i > 0) SButton("↑", rxSeq() = seq.updated(i, seq(i - 1)).updated(i - 1, seq(i))).wrap
-              if (i < seq.length - 1) SButton("↓", rxSeq() = seq.updated(i, seq(i + 1)).updated(i + 1, seq(i))).wrap
-              SButton("-", rxSeq() = seq.patch(i, Nil, 1)).wrap
-            }
-        }
-        SButton("+", rxSeq.append())
-      }
-  }
-
-  implicit class EditableStringViewBuilder(varStr: Var[String])(implicit ctx: Context) extends ViewBuilder {
-    def newView: View =
-      new SVerticalLayout {
-        Seq(1,2,3)
-      }
-  }
-
-}
-
-object DefaultViewBuilder extends DefaultViewBuilder
-
 import DefaultViewBuilder._
 
 class HelloReactoid extends SActivity {
 
   onCreate {
-    contentView = new SVerticalLayout {
-      val lyout = this
+    contentView = new SScrollView {
+      new SVerticalLayout {
+        val lyout = this
 
-      def demo1() = {
-        val txt = EditText("Hello").textVar
-        Button(txt() + ", world!")
-      }
-
-      def demo2() = {
-        val tv = TextView()
-        val txt = EditText().hint("ID").textVar
-        val msgRx = validityMessage(txt()): Rx[String]
-        tv.observe(msgRx)
-      }
-
-      def demo3() = {
-        case class Item(title: Var[String], unitPrice: Var[Double], quantity: Var[Int]) {
-          val price = Rx(quantity() * unitPrice())
+        def demo1() = {
+          val txt = EditText("Hello").textVar
+          Button(txt() + ", world!")
         }
 
-        implicit class ItemViewBuilder(i: Item) extends ViewBuilder {
-          def newView: View = {
-            new SVerticalLayout {
-              TextView(i.title)
-              EditText(i.unitPrice)
-              EditText(i.quantity)
-              TextView(i.price)
+        def demo2() = {
+          val tv = TextView()
+          val txt = EditText().hint("ID").textVar
+          val msgRx = validityMessage(txt()): Rx[String]
+          tv.observe(msgRx)
+        }
+
+        def demo3() = {
+          case class Item(title: Var[String] = Var(""), unitPrice: Var[Double] = Var(0.0), quantity: Var[Int] = Var(1)) {
+            val price = Rx(quantity() * unitPrice())
+          }
+
+          implicit class ItemViewBuilder(i: Item) extends ViewBuilder {
+            def newView: View = {
+              new SVerticalLayout {
+                i.title.newView.here
+                i.unitPrice.newView.here
+                i.quantity.newView.here
+                i.price.newView.here
+                //                TextView(i.title)
+                //                EditText(i.unitPrice)
+                //                EditText(i.quantity)
+                //                TextView(i.price)
+              }
             }
           }
-        }
 
-        implicit class ItemAppendable(rx: Var[List[Item]]) extends Appender {
-          override def append(): Unit = ???
-        }
+          //          implicit class ItemAppendable(rx: Var[List[Item]]) extends Appender {
+          //            override def append(): Unit = rx() = rx() :+ Item()
+          //          }
 
-        val cart = Var(List(
-          Item("Tomato", 0.5, 1),
-          Item("Apple", 0.99, 3),
-          Item("Pear", 1.05, 3),
-          Item("Strawberry", 3.0, 1)
-        ))
+          val cart = Var(List(
+            Item("Tomato", 0.5, 1),
+            Item("Apple", 0.99, 3),
+            Item("Pear", 1.05, 3),
+            Item("Strawberry", 3.0, 1)
+          ))
 
-
-        val a = Map(3 -> "a").view.map { case (k, v) => v + k }
-        val b = a.force
-
-        val lb = new ListBuffer()
-        val cba = augmentString("abc").reverse
-        update {
-          val u = cart()(2).unitPrice
-          u() = u() * 0.95
-        }
-
-        def build[T](obj: Var[T])(implicit ev: Var[T] => ViewBuilder) = {
-          o = Obs(obj) {
-            lyout.removeAllViews()
-            lyout += obj.newView
+          update {
+            val u = cart()(2).unitPrice
+            u() = u() * 0.95
           }
+
+          def build[T](obj: Var[T])(implicit ev: Var[T] => ViewBuilder) = {
+            o = Obs(obj) {
+              lyout.removeAllViews()
+              lyout += obj.newView
+            }
+          }
+
+          build(cart)
         }
 
-        build(cart)
-      }
-
-      demo3()
-    } padding 20.dip
+        demo3()
+      }.padding(20.dip).here
+    }
   }
 }
