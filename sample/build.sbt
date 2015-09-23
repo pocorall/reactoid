@@ -21,6 +21,8 @@ libraryDependencies += "com.lihaoyi" %% "scalarx" % "0.2.8"
 
 libraryDependencies += "org.scalaz" %% "scalaz-core" % "7.1.1"
 
+libraryDependencies += "com.chuusai" %% "shapeless" % "2.2.5"
+
 scalacOptions in Compile ++= Seq("-feature", "-language:higherKinds")
 
 run <<= run in Android
